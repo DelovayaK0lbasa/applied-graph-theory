@@ -715,3 +715,299 @@ circuit = chinese_postman_problem(G)
 print("Маршрут для китайского почтальона (эйлеров цикл):")
 for u, v in circuit:
     print(f"{u} -> {v}")""")
+
+def min_cost_flow():
+    print("""
+from collections import defaultdict, deque
+
+def min_cost_max_flow(graph, capacity, cost, source, sink):
+    flow = 0
+    flow_cost = 0
+    
+    while True:
+        dist = {i: float('inf') for i in graph}
+        dist[source] = 0
+        parent = {i: None for i in graph}
+        in_queue = {i: False for i in graph}
+        queue = deque([source])
+        
+        while queue:
+            u = queue.popleft()
+            in_queue[u] = False
+            
+            for v in graph[u]:
+                if capacity[(u, v)] > 0 and dist[v] > dist[u] + cost[(u, v)]:
+                    dist[v] = dist[u] + cost[(u, v)]
+                    parent[v] = u
+                    
+                    if not in_queue[v]:
+                        queue.append(v)
+                        in_queue[v] = True
+        
+        if dist[sink] == float('inf'):
+            break
+        
+        # Finding the maximum flow through the path found.
+        flow_through_path = float('inf')
+        v = sink
+        while v != source:
+            u = parent[v]
+            flow_through_path = min(flow_through_path, capacity[(u, v)])
+            v = u
+        
+        # Updating residual capacities and flow.
+        v = sink
+        while v != source:
+            u = parent[v]
+            capacity[(u, v)] -= flow_through_path
+            capacity[(v, u)] += flow_through_path
+            flow_cost += flow_through_path * cost[(u, v)]
+            v = u
+        
+        flow += flow_through_path
+    
+    return flow, flow_cost""")
+
+def dominating_set():
+    print("""
+import networkx as nx
+
+def greedy_dominating_set(graph):
+    '''
+    Жадный алгоритм для нахождения доминирующего множества в графе.
+
+    graph - неориентированный граф (NetworkX graph).
+
+    Возвращает доминирующее множество.
+    '''
+    dominating_set = set()  # Множество для хранения вершин доминирующего множества
+    covered = set()  # Множество охваченных вершин
+
+    # Пока не все вершины охвачены
+    while len(covered) < len(graph.nodes):
+        # Ищем вершину, которая покрывает максимальное количество непокрытых соседей
+        max_covering_vertex = None
+        max_cover_count = -1
+
+        for vertex in graph.nodes:
+            # Пропускаем вершины, которые уже в доминирующем множестве или уже покрыты
+            if vertex in dominating_set or vertex in covered:
+                continue
+
+            # Считаем, сколько новых непокрытых вершин может покрыть эта вершина
+            neighbors = set(graph.neighbors(vertex))
+            uncovered_neighbors = neighbors - covered
+
+            if len(uncovered_neighbors) > max_cover_count:
+                max_cover_count = len(uncovered_neighbors)
+                max_covering_vertex = vertex
+
+        # Добавляем выбранную вершину в доминирующее множество
+        dominating_set.add(max_covering_vertex)
+        # Обновляем множество охваченных вершин
+        covered.add(max_covering_vertex)
+        covered.update(graph.neighbors(max_covering_vertex))
+
+    return dominating_set""")
+
+def wattz_strogatz():
+    print("""
+def watts_strogatz_graph(n, k, p):
+    '''
+    Создание сети Уоттса-Строгаца.
+
+    :param n: Количество вершин в графе
+    :param k: Число соседей для каждой вершины в начальной кольцевой сети
+    :param p: Вероятность переподключения каждого ребра
+    :return: Граф, сгенерированный по модели Уоттса-Строгаца
+    '''
+    # Шаг 1: Создание кольцевой сети
+    G = nx.Graph()
+
+    for i in range(n):
+        for j in range(1, k // 2 + 1):
+            G.add_edge(i, (i + j) % n)  # Соединяем с соседями по кольцу
+
+    # Шаг 2: Замена ребер с вероятностью p
+    for u, v in list(G.edges()):
+        if random.random() < p:
+            # Выбираем случайную вершину для переподключения
+            new_v = random.choice([x for x in range(n) if x != u and x != v])
+            G.add_edge(u, new_v)
+            G.remove_edge(u, v)
+
+    return G""")
+
+def barabasi_albert():
+    print("""
+import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+
+def barabasi_albert_model(n, m):
+    # Создаем начальный полный граф с m узлами
+    G = nx.complete_graph(m)
+    
+    # Добавляем новые узлы
+    for i in range(m, n):
+        # Получаем список узлов и их степени
+        degrees = np.array([G.degree(node) for node in G.nodes()])
+        
+        # Расчет вероятности подключения
+        prob = degrees / degrees.sum()
+        
+        # Выбор m узлов на основе вероятности
+        new_edges = np.random.choice(G.nodes(), size=m, replace=False, p=prob)
+        
+        # Добавляем новый узел и его связи
+        G.add_node(i)
+        for edge in new_edges:
+            G.add_edge(i, edge)
+    
+    return G
+
+# Пример использования
+n = 100  # Количество узлов
+m = 5    # Количество связей, создаваемых новым узлом
+
+graph = barabasi_albert_model(n, m)
+
+# Визуализация графа
+plt.figure(figsize=(10, 10))
+nx.draw(graph, node_size=30, with_labels=False)
+plt.show()
+""")
+
+def fleri():
+    print("""
+import networkx as nx
+
+def is_bridge(graph, u, v):
+    '''
+    Проверка, является ли ребро (u, v) мостом.
+    '''
+    # Удаляем ребро
+    graph.remove_edge(u, v)
+    # Проверяем, связан ли граф
+    is_connected = nx.is_connected(graph)
+    # Восстанавливаем ребро
+    graph.add_edge(u, v)
+    return not is_connected
+
+def fleury_algorithm(graph):
+    '''
+    Реализация алгоритма Флери для построения Эйлерова цикла.
+    Возвращает список рёбер, которые составляют Эйлеров цикл.
+    '''
+    # Проверяем, что все вершины имеют чётную степень
+    for node in graph.nodes():
+        if graph.degree(node) % 2 != 0:
+            raise ValueError("Граф не содержит Эйлерова цикла (не все вершины имеют чётную степень).")
+
+    # Копируем граф, чтобы не модифицировать исходный
+    graph_copy = graph.copy()
+
+    # Начинаем с произвольной вершины
+    current_node = list(graph_copy.nodes())[0]
+
+    # Список рёбер, который будет содержать Эйлеров цикл
+    euler_cycle = []
+
+    # Алгоритм Флери
+    while graph_copy.edges():
+        # Проверяем соседей текущей вершины
+        for neighbor in list(graph_copy.neighbors(current_node)):
+            # Если не мост, идем по ребру
+            if not is_bridge(graph_copy, current_node, neighbor):
+                next_node = neighbor
+                break
+        else:
+            # Если все рёбра - мосты, то используем мост
+            next_node = next(graph_copy.neighbors(current_node))
+
+        # Добавляем ребро в Эйлеров цикл
+        euler_cycle.append((current_node, next_node))
+        # Удаляем ребро из графа
+        graph_copy.remove_edge(current_node, next_node)
+        # Переходим в следующую вершину
+        current_node = next_node
+
+        # Удаляем изолированные вершины
+        isolated_nodes = [node for node in graph_copy.nodes() if graph_copy.degree(node) == 0]
+        graph_copy.remove_nodes_from(isolated_nodes)
+
+    return euler_cycle""")
+
+def vengerian():
+    print("""
+import networkx as nx
+
+def dfs(u, match_u, match_v, visited, graph):
+    # Рекурсивный поиск для нахождения увеличивающего пути и расширения паросочетания.
+    for v in graph[u]:
+        if not visited[v]:
+            visited[v] = True
+            # Если v не связано с каким-либо элементом из множества U или
+            # если мы можем найти увеличивающее паросочетание для паросочетания match_v[v]
+            if match_v[v] == -1 or dfs(match_v[v], match_u, match_v, visited, graph):
+                match_u[u] = v
+                match_v[v] = u
+                return True
+    return False
+
+def hungarian_algorithm(graph):
+    # Разделим вершины на два множества U и V
+    nodes = list(graph.nodes())
+    n = len(nodes)
+    mid = n // 2  # для простоты предположим, что граф двудольный
+
+    U = nodes[:mid]
+    V = nodes[mid:]
+
+    # Массивы, которые будут хранить текущие паросочетания
+    match_u = {u: -1 for u in U}  # match_u[u] - вершина из V, с которой вершина u из U связано
+    match_v = {v: -1 for v in V}  # match_v[v] - вершина из U, с которой вершина v из V связано
+
+    result = 0
+    for u in U:
+        # Массив для пометки посещенных вершин в графе
+        visited = {v: False for v in V}
+        if dfs(u, match_u, match_v, visited, graph):
+            result += 1  # Если нашли увеличивающее паросочетание, увеличиваем результат
+
+    # Формируем список пар паросочетания
+    matching_pairs = [(u, match_u[u]) for u in U if match_u[u] != -1]
+
+    return result, matching_pairs""")
+
+def matrices():
+    print("""
+def adjacency_matrix(G):
+    nodes = list(G.nodes())
+    n = len(nodes)
+    adj_matrix = np.zeros((n, n), dtype=int)
+    for i, j in G.edges():
+        idx_i = nodes.index(i)
+        idx_j = nodes.index(j)
+        adj_matrix[idx_i][idx_j] = 1
+        if not G.is_directed():
+            adj_matrix[idx_j][idx_i] = 1
+    return adj_matrix
+
+def incidence_matrix(G):
+    m = len(G.edges)
+    n = len(G.nodes)
+    edge_dict = list(G.edges())
+    inc_matrix = np.zeros((n, m), dtype=int)
+    nodes = list(G.nodes())
+    for idx, (u, v) in enumerate(edge_dict):
+        u_idx = nodes.index(u)
+        v_idx = nodes.index(v)
+
+        inc_matrix[u_idx][idx] = 1
+        if G.is_directed():
+            inc_matrix[v_idx][idx] = -1
+        else:
+            inc_matrix[v_idx][idx] = 1
+    return inc_matrix""")
+
